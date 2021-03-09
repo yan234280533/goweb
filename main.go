@@ -23,12 +23,13 @@ var (
 		Help:      "The total number of processed request",
 	})
 
-	appsummary = prometheus.NewSummary(
+	appsummary = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "app",
-			Name:      "summary",
-			Help:      "This is my summary",
-		})
+			Namespace:  "app",
+			Name:       "summary",
+			Help:       "This is my summary",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		}, []string{"service"})
 
 	appResponseTime = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -41,7 +42,7 @@ var (
 func init() {
 
 	//prometheus.MustRegister(appcount)
-	//prometheus.MustRegister(appsummary)
+	prometheus.MustRegister(appsummary)
 	prometheus.MustRegister(appResponseTime)
 
 	// Add Go module build info.
@@ -51,10 +52,13 @@ func init() {
 func myWeb(w http.ResponseWriter, r *http.Request) {
 	//appcount.Inc()
 
-	cost := rand.Intn(100)
-	appResponseTime.WithLabelValues("normal").Set(float64(cost))
+	cost := float64(rand.Intn(100)*1.0) / 100.0
+	fmt.Fprintf(w, fmt.Sprintf("%.2f\n", cost))
 
-	fmt.Fprintf(w, "这2")
+	appResponseTime.WithLabelValues("normal").Set(float64(cost))
+	appsummary.WithLabelValues("service").Observe(float64(cost))
+
+	fmt.Fprintf(w, fmt.Sprintf("这%.2f\n", cost))
 }
 
 func main() {
