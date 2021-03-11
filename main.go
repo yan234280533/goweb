@@ -26,7 +26,7 @@ var (
 	appsummary = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace:  "app",
-			Name:       "summary",
+			Name:       "request_summary",
 			Help:       "This is my summary",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}, []string{"service"})

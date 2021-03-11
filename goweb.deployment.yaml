@@ -1,0 +1,59 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  generation: 1
+  labels:
+    k8s-app: goweb
+    qcloud-app: goweb
+  name: goweb
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 3
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: goweb
+      qcloud-app: goweb
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        tkestack.io/slo-enable: "true"
+        tkestack.io/slo-prom-key: app_request_summary
+        tkestack.io/slo-prom-quantile: "0.99"
+        tkestack.io/slo-prom-service: service
+        tkestack.io/slo-type: prom
+        tkestack.io/slo-value: "1.0"
+        tkestack.io/trace-port: "8080"
+        tkestack.io/trace-subpath: metrics
+      creationTimestamp: null
+      labels:
+        k8s-app: goweb
+        qcloud-app: goweb
+    spec:
+      containers:
+      - image: ccr.ccs.tencentyun.com/tkeimages/goweb:v0.3
+        imagePullPolicy: Always
+        name: goweb
+        resources:
+          limits:
+            cpu: "1"
+            memory: 2Gi
+          requests:
+            cpu: "1"
+            memory: 2Gi
+        securityContext:
+          privileged: false
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: qcloudregistrykey
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30

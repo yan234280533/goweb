@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    k8s-app: goweb
+    qcloud-app: goweb
+  name: goweb
+spec:
+  ports:
+  - name: 8080-8080-tcp
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    k8s-app: goweb
+    qcloud-app: goweb
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
