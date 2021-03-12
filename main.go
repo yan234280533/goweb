@@ -5,6 +5,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
+	"math"
 	"math/rand"
 	"net/http"
 )
@@ -14,6 +16,12 @@ var responseLabels = prometheus.Labels{
 	"group":    "group1",
 	"warning":  "2.5",
 	"critical": "2.8",
+}
+
+const MIN = 0.000000001
+
+func IsEqual(f1, f2 float64) bool {
+	return math.Abs(f1-f2) < MIN
 }
 
 var (
@@ -61,9 +69,38 @@ func myWeb(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, fmt.Sprintf("这%.2f\n", cost))
 }
 
+func myQuantile(w http.ResponseWriter, r *http.Request) {
+	metric, err := appsummary.MetricVec.GetMetricWith(prometheus.Labels{"service": "service"})
+	if err != nil {
+		fmt.Fprintf(w, "err %s", err.Error())
+		return
+	} else {
+		var dtoMetric = dto.Metric{}
+
+		err = metric.Write(&dtoMetric)
+		if err != nil {
+			fmt.Fprintf(w, "err %s", err.Error())
+			return
+		}
+
+		var value float64
+		for _, v := range dtoMetric.Summary.Quantile {
+			if !IsEqual(*(v.Quantile), 0.99) {
+				continue
+			} else {
+				value = *(v.Value)
+				break
+			}
+		}
+
+		fmt.Fprintf(w, fmt.Sprintf("%v\n", value))
+	}
+}
+
 func main() {
 	http.HandleFunc("/", myWeb)
 	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/quantile", myQuantile)
 
 	fmt.Println("服务器即将开启，访问地址 http://localhost:8080")
 
