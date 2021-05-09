@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
 var responseLabels = prometheus.Labels{
@@ -59,14 +60,15 @@ func init() {
 
 func myWeb(w http.ResponseWriter, r *http.Request) {
 	//appcount.Inc()
-
-	cost := float64(rand.Intn(100)*1.0) / 100.0
+	cost := myfunc()
 	fmt.Fprintf(w, fmt.Sprintf("%.2f\n", cost))
+}
 
+func myfunc() float64 {
+	cost := float64(rand.Intn(100)*1.0) / 100.0
 	appResponseTime.WithLabelValues("normal").Set(float64(cost))
 	appsummary.WithLabelValues("service").Observe(float64(cost))
-
-	fmt.Fprintf(w, fmt.Sprintf("这%.2f\n", cost))
+	return cost
 }
 
 func myQuantile(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +103,14 @@ func main() {
 	http.HandleFunc("/", myWeb)
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/quantile", myQuantile)
+
+	go func() {
+		fmt.Println("Loop of my func")
+		for {
+			time.Sleep(10 * time.Millisecond)
+			_ = myfunc()
+		}
+	}()
 
 	fmt.Println("服务器即将开启，访问地址 http://localhost:8080")
 
