@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -40,6 +41,21 @@ var (
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}, []string{"service"})
 
+	app2summary = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace:  "app",
+			Name:       "request2_summary",
+			Help:       "This is my2 summary",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		}, []string{"service"})
+
+	/*httpsummary = promauto.NewSummaryVec(prometheus.SummaryOpts{
+		Namespace: "happ",
+		Name: "happ_response_time_summary",
+		Help: "Duration of HTTP requests.",
+		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01,0.95: 0.005,0.99: 0.001}, //返回五分数， 九分数， 九九分数
+	}, []string{"service"})*/
+
 	appResponseTime = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "app",
@@ -48,10 +64,25 @@ var (
 		}, []string{"normal"})
 )
 
-func init() {
+func doCpuWork(cpuSize int, count int) {
+	var wg sync.WaitGroup
+	for c := 0; c < cpuSize; c++ {
+		wg.Add(1)
+		go func() {
+			for i := 0; i < count; i++ {
+				time.Sleep(1 * time.Nanosecond)
+				math.Sqrt(float64(i))
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
 
+func init() {
 	//prometheus.MustRegister(appcount)
 	prometheus.MustRegister(appsummary)
+	prometheus.MustRegister(app2summary)
 	prometheus.MustRegister(appResponseTime)
 
 	// Add Go module build info.
@@ -62,6 +93,13 @@ func myWeb(w http.ResponseWriter, r *http.Request) {
 	//appcount.Inc()
 	cost := myfunc()
 	fmt.Fprintf(w, fmt.Sprintf("%.2f\n", cost))
+}
+
+func mySqrt(w http.ResponseWriter, r *http.Request) {
+	startT := time.Now()
+	doCpuWork(1, 4000000)
+	tc := time.Since(startT)
+	app2summary.WithLabelValues("service").Observe(float64(tc.Nanoseconds()) / 1000.0 / 1000.0)
 }
 
 func myfunc() float64 {
@@ -101,6 +139,7 @@ func myQuantile(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", myWeb)
+	http.HandleFunc("/sqrt", mySqrt)
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/quantile", myQuantile)
 
@@ -108,7 +147,7 @@ func main() {
 		fmt.Println("Loop of my func")
 		for {
 			time.Sleep(10 * time.Millisecond)
-			_ = myfunc()
+			//_ = myfunc()
 		}
 	}()
 
