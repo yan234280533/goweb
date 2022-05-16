@@ -119,7 +119,7 @@ func myRestart(w http.ResponseWriter, r *http.Request) {
 }
 
 func myStop(w http.ResponseWriter, r *http.Request) {
-	err := Restart("serverTest", "/serverTest")
+	err := Stop("serverTest")
 	if err != nil {
 		fmt.Fprintf(w, fmt.Sprintf("%v", err))
 	} else {
@@ -135,7 +135,7 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/quantile", myQuantile)
 	http.HandleFunc("/start", myStart)
-	http.HandleFunc("/resrart", myRestart)
+	http.HandleFunc("/restart", myRestart)
 	http.HandleFunc("/stop", myStop)
 
 	fmt.Println("服务器即将开启，访问地址 http://localhost:8080")

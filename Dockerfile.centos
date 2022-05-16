@@ -1,0 +1,9 @@
+FROM ccr.ccs.tencentyun.com/tkeimages/centos:8
+
+COPY loop.sh /loop.sh
+COPY loop.org.sh /loop.org.sh
+COPY loop.noexit.sh /loop.noexit.sh
+COPY loop.noexit-rate5.sh /loop.noexit-rate5.sh
+RUN chmod 777 /*.sh
+
+
