@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -66,17 +67,20 @@ var (
 
 func doCpuWork(cpuSize int, count int) {
 	var wg sync.WaitGroup
+	var timeNow uint64
 	for c := 0; c < cpuSize; c++ {
 		wg.Add(1)
 		go func() {
 			for i := 0; i < count; i++ {
 				time.Sleep(1 * time.Nanosecond)
-				math.Sqrt(float64(i))
+				timeNow++
 			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+
+	fd, _, err := syscall.RawSyscall(syscall.SYS_SOCKET, syscall.AF_INET, syscall.SOCK_DGRAM, syscall.IPPROTO_IP)
 }
 
 func init() {
