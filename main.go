@@ -1,15 +1,16 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
+	"k8s.io/klog/v2"
 	"math"
 	"math/rand"
 	"net/http"
-	"time"
 )
 
 var responseLabels = prometheus.Labels{
@@ -99,18 +100,43 @@ func myQuantile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func myStart(w http.ResponseWriter, r *http.Request) {
+	err := Start("/serverTest")
+	if err != nil {
+		fmt.Fprintf(w, fmt.Sprintf("%v", err))
+	} else {
+		fmt.Fprintf(w, fmt.Sprintf("OK"))
+	}
+}
+
+func myRestart(w http.ResponseWriter, r *http.Request) {
+	err := Restart("serverTest", "/serverTest")
+	if err != nil {
+		fmt.Fprintf(w, fmt.Sprintf("%v", err))
+	} else {
+		fmt.Fprintf(w, fmt.Sprintf("OK"))
+	}
+}
+
+func myStop(w http.ResponseWriter, r *http.Request) {
+	err := Restart("serverTest", "/serverTest")
+	if err != nil {
+		fmt.Fprintf(w, fmt.Sprintf("%v", err))
+	} else {
+		fmt.Fprintf(w, fmt.Sprintf("OK"))
+	}
+}
+
 func main() {
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+
 	http.HandleFunc("/", myWeb)
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/quantile", myQuantile)
-
-	go func() {
-		fmt.Println("Loop of my func")
-		for {
-			time.Sleep(10 * time.Millisecond)
-			_ = myfunc()
-		}
-	}()
+	http.HandleFunc("/start", myStart)
+	http.HandleFunc("/resrart", myRestart)
+	http.HandleFunc("/stop", myStop)
 
 	fmt.Println("服务器即将开启，访问地址 http://localhost:8080")
 
