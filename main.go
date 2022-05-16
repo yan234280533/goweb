@@ -119,7 +119,7 @@ func myRestart(w http.ResponseWriter, r *http.Request) {
 }
 
 func myStop(w http.ResponseWriter, r *http.Request) {
-	err := Restart("serverTest", "/serverTest")
+	err := Stop("serverTest")
 	if err != nil {
 		fmt.Fprintf(w, fmt.Sprintf("%v", err))
 	} else {
